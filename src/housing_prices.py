@@ -14,7 +14,9 @@ def load_data():
     Returns:
     df (pd.DataFrame): California housing dataset.
     """
-    # ...write your code here...
+    housing = fetch_california_housing(as_frame=True)
+    df = housing.frame
+    df = df.rename(columns={'MedHouseVal': 'Price'})
     return df
 
 def preprocess_data(df):
@@ -34,13 +36,13 @@ def preprocess_data(df):
     # Drop target variable for feature selection
     X = df.drop(columns=['Price'])
     y = df['Price']
-    
     # Split into training and testing sets
-    # ...write your code here...
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
     
     # Standardize numerical features
     scaler = StandardScaler()
-    # ...write your code here...
+    X_train_scaled = scaler.fit_transform(X_train)
+    X_test_scaled = scaler.transform(X_test)
     
     return X_train_scaled, X_test_scaled, y_train, y_test, scaler
 
@@ -54,7 +56,12 @@ def build_model(input_shape):
     Returns:
     model (Sequential): Compiled neural network model.
     """
-    # ...write your code here...
+    model = Sequential()
+    model.add(Dense(64, activation='relu', input_shape=(input_shape,)))
+    model.add(Dropout(0.2))
+    model.add(Dense(64, activation='relu'))
+    model.add(Dense(1))
+
     return model
 
 def train_model(model, X_train, y_train, X_test, y_test, epochs=50, batch_size=32):
@@ -73,7 +80,8 @@ def train_model(model, X_train, y_train, X_test, y_test, epochs=50, batch_size=3
     Returns:
     history: Training history.
     """
-    # ...write your code here...
+    model.compile(optimizer='adam', loss='mse', metrics=['mae'])
+    history = model.fit(X_train, y_train, epochs=epochs, validation_data=(X_test, y_test), batch_size=batch_size)
     return history
 
 def evaluate_model(model, X_test, y_test):
@@ -89,10 +97,10 @@ def evaluate_model(model, X_test, y_test):
     loss (float): Test loss.
     mae (float): Test mean absolute error.
     """
-    # ...write your code here...
+    loss, mae = model.evaluate(X_test, y_test)
     return loss, mae
 
-def plot_loss(history):
+def plot_loss(history, filename='loss_curve.png'):
     """Plots the training and validation loss curves."""
     plt.figure(figsize=(12, 5))
     plt.plot(history.history['loss'], label='Train Loss')
@@ -101,15 +109,17 @@ def plot_loss(history):
     plt.ylabel('MSE Loss')
     plt.legend()
     plt.title('Model Training Loss Curve')
+    plt.savefig(filename)
     plt.show()
 
-def plot_predictions(y_test, y_pred):
+def plot_predictions(y_test, y_pred, filename='predictions.png'):
     """Plots actual vs predicted prices."""
     plt.figure(figsize=(8, 6))
     plt.scatter(y_test, y_pred, alpha=0.5, color='b')
     plt.xlabel('Actual Prices')
     plt.ylabel('Predicted Prices')
     plt.title('Actual vs Predicted House Prices')
+    plt.savefig(filename)
     plt.show()
 
 def predict_house_price(model, house_features, scaler):
@@ -120,18 +130,19 @@ def predict_house_price(model, house_features, scaler):
     model (Sequential): Trained neural network model.
     house_features (list): List of house features (same order as training data).
     scaler: Scaler object used for data preprocessing.
-   
+
     Returns:
     predicted_price (float): Predicted house price.
     """
     # Convert input to a NumPy array and reshape for model
-    # ...write your code here...
+    features = np.array(house_features).reshape(1, -1)
 
     # Scale the input features using the same scaler used in training
-    # ...write your code here...
+    features_scaled = scaler.transform(features)
+    print(f"Scaled features for prediction: {features_scaled}")
 
     # Predict price
-    # ...write your code here...
+    predicted_price = model.predict(features_scaled)[0][0]
     
     return predicted_price
 
@@ -152,9 +163,9 @@ if __name__ == "__main__":
     print(f"Test Mean Absolute Error: {mae:.2f}")
 
     # Step 5: Plot loss and predictions
-    plot_loss(history)
+    plot_loss(history, filename='loss_curve_64-64.png')
     y_pred = model.predict(X_test)
-    plot_predictions(y_test, y_pred)
+    plot_predictions(y_test, y_pred, filename='predictions_64-64.png')
 
     # Example new house features (same order as dataset)
     new_house = [8.32, 41.0, 6.984127, 1.02381, 322.0, 2.555556, 37.88, -122.23]  # Example house data
